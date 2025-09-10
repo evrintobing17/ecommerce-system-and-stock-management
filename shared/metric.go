@@ -2,9 +2,9 @@ package shared
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,29 +22,23 @@ var (
 	}, []string{"method", "path"})
 )
 
-func MetricsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// GinMetricsMiddleware creates a Gin middleware for metrics collection
+func GinMetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
-		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
-		next.ServeHTTP(lw, r)
+		// Process request
+		c.Next()
 
 		duration := time.Since(start).Seconds()
-		httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, fmt.Sprintf("%d", lw.statusCode)).Inc()
-		httpRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(duration)
-	})
+		status := fmt.Sprintf("%d", c.Writer.Status())
+
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.Request.URL.Path, status).Inc()
+		httpRequestDuration.WithLabelValues(c.Request.Method, c.Request.URL.Path).Observe(duration)
+	}
 }
 
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code
-	lrw.ResponseWriter.WriteHeader(code)
-}
-
-func RegisterMetricsHandler() {
-	http.Handle("/metrics", promhttp.Handler())
+// RegisterMetricsHandler registers the Prometheus metrics endpoint
+func RegisterMetricsHandler(router *gin.Engine) {
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 }

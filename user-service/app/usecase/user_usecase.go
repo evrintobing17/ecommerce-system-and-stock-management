@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"shared"
 	"time"
 
 	user "user-service/app"
@@ -15,28 +16,33 @@ import (
 type userUsecase struct {
 	userRepo  user.UserRepository
 	jwtSecret string
+	log       shared.Log
 }
 
-func NewUserUsecase(userRepo user.UserRepository, jwtSecret string) user.UserUsecase {
+func NewUserUsecase(userRepo user.UserRepository, jwtSecret string, log shared.Log) user.UserUsecase {
 	return &userUsecase{
 		userRepo:  userRepo,
 		jwtSecret: jwtSecret,
+		log:       log,
 	}
 }
 
 func (s *userUsecase) Login(ctx context.Context, email, password string) (string, *models.UserResponse, error) {
 	user, err := s.userRepo.FindByPhoneOrEmail(ctx, email)
 	if err != nil {
+		s.log.ErrorLog(err)
 		return "", nil, models.ErrUserNotFound
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
+		s.log.ErrorLog(models.ErrInvalidCredentials)
 		return "", nil, models.ErrInvalidCredentials
 	}
 
 	token, err := s.generateToken(user)
 	if err != nil {
+		s.log.ErrorLog(err)
 		return "", nil, err
 	}
 

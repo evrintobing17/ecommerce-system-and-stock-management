@@ -12,9 +12,9 @@ import (
 
 	"shared"
 	"shared/jsonhttpresponse"
-	userDelivery "user-service/app/delivery"
-	userRepo "user-service/app/repository"
-	userUsecase "user-service/app/usecase"
+	productDelivery "product-service/app/delivery"
+	productRepo "product-service/app/repository"
+	productUsecase "product-service/app/usecase"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 )
 
 func main() {
-	logger := shared.NewLogger("USER-SERVICE")
+	logger := shared.NewLogger("PRODUCT-SERVICE")
 	var err error
 	db, err = shared.InitDB()
 	if err != nil {
@@ -43,10 +43,10 @@ func main() {
 		})
 	})
 
-	userRepository := userRepo.NewUserRepository(db)
-	userUseCase := userUsecase.NewUserUsecase(userRepository, string(jwtSecret), logger)
-	userDelivery.NewAuthHandler(r, logger, userUseCase)
+	productRepository := productRepo.NewproductRepository(db)
+	productUseCase := productUsecase.NewproductUsecase(productRepository, string(jwtSecret), logger)
+	productDelivery.NewAuthHandler(r, logger, productUseCase)
 
-	fmt.Println("User service is running on port 8080")
+	fmt.Println("product service is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

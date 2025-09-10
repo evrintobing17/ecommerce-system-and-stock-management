@@ -10,13 +10,30 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// DBConfig holds database configuration
+type DBConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	DBName   string
+}
+
 func InitDB() (*sql.DB, error) {
+
+	config := DBConfig{
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		DBName:   os.Getenv("DB_NAME"),
+	}
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable host=%s port=%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
+		config.User,
+		config.Password,
+		config.DBName,
+		config.Host,
+		config.Port,
 	)
 
 	db, err := sql.Open("postgres", connStr)

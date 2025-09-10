@@ -31,9 +31,6 @@ func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, er
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
 

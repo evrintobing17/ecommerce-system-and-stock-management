@@ -1,6 +1,6 @@
 package jsonhttpresponse
 
-//type helpers. Used as an example value in swagger documentation
+// type helpers. Used as an example value in swagger documentation
 type FailedResponse struct {
 	Status  string      `json:"status" example:"failed"`
 	Message interface{} `json:"message"`
@@ -26,8 +26,8 @@ type FailedInternalServerErrorResponse struct {
 	Message string `json:"message" example:"internal server error"`
 }
 
-//NewFailedResponse will return a json envelope (wrapper) to the
-//HTTP Error response code
+// NewFailedResponse will return a json envelope (wrapper) to the
+// HTTP Error response code
 func NewFailedResponse(message interface{}) FailedResponse {
 	return FailedResponse{Status: "failed", Message: message}
 }

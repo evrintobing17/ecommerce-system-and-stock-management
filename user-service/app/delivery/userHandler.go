@@ -1,23 +1,24 @@
 package delivery
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
+	"shared"
 	user "user-service/app"
 	"user-service/app/models"
 
+	jResp "shared/jsonhttpresponse"
+
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
+	log         shared.Log
 	userUseCase user.UserUsecase
 }
 
-func NewAuthHandler(r *gin.Engine, userUseCase user.UserUsecase) {
+func NewAuthHandler(r *gin.Engine, log shared.Log, userUseCase user.UserUsecase) {
 	handler := &UserHandler{
 		userUseCase: userUseCase,
+		log:         log,
 	}
 
 	authorized := r.Group("/v1/user")
@@ -29,18 +30,10 @@ func NewAuthHandler(r *gin.Engine, userUseCase user.UserUsecase) {
 func (h *UserHandler) Login(c *gin.Context) {
 	var loginReq models.LoginRequest
 	var loginData string
-	var errs []models.Error
 	errBind := c.ShouldBind(&loginReq)
 	if errBind != nil {
-		if verrs, ok := errBind.(validator.ValidationErrors); ok {
-			for _, e := range verrs {
-				errs = append(errs, models.Error{
-					Key:   e.Field(), // or e.Namespace() for full path
-					Error: fmt.Sprintf("failed on '%s' rule", e.Tag()),
-				})
-			}
-		}
-		c.IndentedJSON(http.StatusBadRequest, map[string]interface{}{"error": errs})
+		c.Set("stackTrace", h.log.SetMessageLog(errBind))
+		jResp.ErrBind(c, errBind)
 		return
 	}
 
@@ -51,14 +44,8 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	token, user, err := h.userUseCase.Login(c, loginData, loginReq.Password)
 	if err != nil {
-		responseErr := map[string]interface{}{
-			"err": err.Error(),
-		}
-		if errors.Is(err, models.ErrUserNotFound) {
-			c.IndentedJSON(http.StatusBadRequest, responseErr)
-			return
-		}
-		c.IndentedJSON(http.StatusUnauthorized, responseErr)
+		c.Set("stackTrace", h.log.SetMessageLog(err))
+		jResp.BadRequest(c, err.Error())
 		return
 	}
 
@@ -66,10 +53,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		"token": token,
 		"user":  user,
 	}
-
-	resp := models.Response{
-		Data: response,
-	}
-
-	c.IndentedJSON(http.StatusOK, resp)
+	h.log.InfoLog("success")
+	jResp.OK(c, response)
+	return
 }
