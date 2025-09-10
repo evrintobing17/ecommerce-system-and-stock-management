@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for each service
+  user-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: user_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+      - ./user-service/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  product-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: product
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: product_service
+    ports:
+      - "5433:5432"
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+      - ./product-service/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  warehouse-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: warehouse_service
+    ports:
+      - "5434:5432"
+    volumes:
+      - warehouse-db-data:/var/lib/postgresql/data
+      - ./warehouse-service/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  shop-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shop_service
+    ports:
+      - "5435:5432"
+    volumes:
+      - shop-db-data:/var/lib/postgresql/data
+      - ./shop-service/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  order-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order_service
+    ports:
+      - "5436:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+      - ./order-service/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  # Redis for caching and distributed locking
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - USER_SERVICE_URL=user-service:8081
+      - PRODUCT_SERVICE_URL=product-service:8082
+      - ORDER_SERVICE_URL=order-service:8083
+      - SHOP_SERVICE_URL=shop-service:8084
+      - WAREHOUSE_SERVICE_URL=warehouse-service:8085
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - shop-service
+      - warehouse-service
+
+  # Microservices
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8080"
+    environment:
+      - DB_HOST=user-db
+      - DB_PORT=5432
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=user_service
+      - JWT_SECRET=your-jwt-secret
+    depends_on:
+      - user-db
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "8082:8080"
+    environment:
+      - DB_HOST=product-db
+      - DB_PORT=5432
+      - DB_USER=product
+      - DB_PASSWORD=password
+      - DB_NAME=product_service
+      - WAREHOUSE_SERVICE_URL=warehouse-service:8085
+    depends_on:
+      - product-db
+      - warehouse-service
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8083:8080"
+    environment:
+      - DB_HOST=order-db
+      - DB_PORT=5432
+      - DB_USER=order
+      - DB_PASSWORD=password
+      - DB_NAME=order_service
+      - REDIS_URL=redis:6379
+      - WAREHOUSE_SERVICE_URL=warehouse-service:8085
+    depends_on:
+      - order-db
+      - redis
+      - warehouse-service
+
+  shop-service:
+    build: ./shop-service
+    ports:
+      - "8084:8080"
+    environment:
+      - DB_HOST=shop-db
+      - DB_PORT=5432
+      - DB_USER=shop
+      - DB_PASSWORD=password
+      - DB_NAME=shop_service
+    depends_on:
+      - shop-db
+
+  warehouse-service:
+    build: ./warehouse-service
+    ports:
+      - "8085:8080"
+    environment:
+      - DB_HOST=warehouse-db
+      - DB_PORT=5432
+      - DB_USER=warehouse
+      - DB_PASSWORD=password
+      - DB_NAME=warehouse_service
+      - REDIS_URL=redis:6379
+    depends_on:
+      - warehouse-db
+      - redis
+
+volumes:
+  user-db-data:
+  product-db-data:
+  warehouse-db-data:
+  shop-db-data:
+  order-db-data:
