@@ -14,17 +14,6 @@ type productUsecase struct {
 	productRepo product.ProductRepository
 }
 
-type Product struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Price       float64   `json:"price"`
-	Stock       int32     `json:"stock"`
-	ShopID      int       `json:"shop_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
-
 func NewProductUsecase(productRepo product.ProductRepository) product.ProductUsecase {
 	return &productUsecase{productRepo: productRepo}
 }
@@ -42,7 +31,6 @@ func (u *productUsecase) GetProducts(shopID int, page, limit int) ([]*models.Pro
 			Name:        product.Name,
 			Description: product.Description,
 			Price:       product.Price,
-			Stock:       product.Stock,
 			ShopID:      product.ShopID,
 			CreatedAt:   product.CreatedAt,
 			UpdatedAt:   product.UpdatedAt,
@@ -63,7 +51,6 @@ func (u *productUsecase) GetProduct(id int) (*models.Product, error) {
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,
-		Stock:       product.Stock,
 		ShopID:      product.ShopID,
 		CreatedAt:   product.CreatedAt,
 		UpdatedAt:   product.UpdatedAt,
@@ -75,7 +62,6 @@ func (u *productUsecase) CreateProduct(name, description string, price float64, 
 		Name:        name,
 		Description: description,
 		Price:       price,
-		Stock:       stock,
 		ShopID:      shopID,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -91,7 +77,6 @@ func (u *productUsecase) CreateProduct(name, description string, price float64, 
 		Name:        product.Name,
 		Description: product.Description,
 		Price:       product.Price,
-		Stock:       product.Stock,
 		ShopID:      product.ShopID,
 		CreatedAt:   product.CreatedAt,
 		UpdatedAt:   product.UpdatedAt,
@@ -110,46 +95,6 @@ func (u *productUsecase) UpdateProduct(product *models.Product) error {
 	existingProduct.UpdatedAt = time.Now()
 
 	return u.productRepo.Update(existingProduct)
-}
-
-func (u *productUsecase) AddStock(id int, quantity int32) error {
-	product, err := u.productRepo.FindByID(id)
-	if err != nil {
-		return err
-	}
-
-	product.Stock += quantity
-	product.UpdatedAt = time.Now()
-
-	return u.productRepo.UpdateStock(id, product.Stock)
-}
-
-func (u *productUsecase) SubtractStock(id int, quantity int32) error {
-	product, err := u.productRepo.FindByID(id)
-	if err != nil {
-		return err
-	}
-
-	if product.Stock < quantity {
-		return ErrInsufficientStock
-	}
-
-	product.Stock -= quantity
-	product.UpdatedAt = time.Now()
-
-	return u.productRepo.UpdateStock(id, product.Stock)
-}
-
-func (u *productUsecase) SetStock(id int, quantity int32) error {
-	product, err := u.productRepo.FindByID(id)
-	if err != nil {
-		return err
-	}
-
-	product.Stock = quantity
-	product.UpdatedAt = time.Now()
-
-	return u.productRepo.UpdateStock(id, product.Stock)
 }
 
 func (u *productUsecase) DeleteProduct(id int) error {

@@ -83,10 +83,10 @@ func main() {
 	go func() {
 		grpcPort := os.Getenv("SHOP_GRPC_PORT")
 		if grpcPort == "" {
-			grpcPort = "50054"
+			grpcPort = ":50054"
 		}
 
-		lis, err := net.Listen("tcp", ":"+grpcPort)
+		lis, err := net.Listen("tcp", grpcPort)
 		if err != nil {
 			log.Fatal("Failed to listen:", err)
 		}

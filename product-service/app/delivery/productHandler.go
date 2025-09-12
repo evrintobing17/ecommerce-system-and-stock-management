@@ -115,45 +115,6 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	})
 }
 
-func (h *ProductHandler) UpdateStock(c *gin.Context) {
-	productID, _ := strconv.Atoi(c.Param("id"))
-
-	var request struct {
-		Operation string `json:"operation" binding:"required,oneof=add subtract set"`
-		Quantity  int32  `json:"quantity" binding:"required,min=1"`
-	}
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var err error
-	switch request.Operation {
-	case "add":
-		err = h.productUsecase.AddStock(productID, request.Quantity)
-	case "subtract":
-		err = h.productUsecase.SubtractStock(productID, request.Quantity)
-	case "set":
-		err = h.productUsecase.SetStock(productID, request.Quantity)
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	product, err := h.productUsecase.GetProduct(productID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"product": product,
-	})
-}
-
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	productID, _ := strconv.Atoi(c.Param("id"))
 

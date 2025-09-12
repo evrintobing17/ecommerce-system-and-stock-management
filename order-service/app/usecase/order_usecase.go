@@ -34,27 +34,25 @@ func NewOrderUsecase(orderRepo app.OrderRepository, productClient productProto.P
 }
 
 func (u *orderUsecase) Checkout(userID int, items []models.OrderItem) (*models.Order, error) {
+
 	// 1. Validate products and check stock availability
 	for _, item := range items {
 		// Check product exists and get current stock
 		product, err := u.productClient.GetProduct(context.Background(), &productProto.GetProductRequest{
 			ProductId: int32(item.ProductID),
 		})
-		if err != nil {
+		if err != nil || product == nil {
 			return nil, fmt.Errorf("product %s not found: %w", item.ProductID, err)
 		}
 
-		// Check if enough stock is available
-		if product.Product.Stock < item.Quantity {
-			return nil, fmt.Errorf("insufficient stock for product %s", item.ProductID)
-		}
 	}
-
+	var stockTotal int32
 	// 2. Reserve stock in warehouse
 	for _, item := range items {
 		// Find available warehouses with stock
 		warehouses, err := u.warehouseClient.GetWarehouses(context.Background(), &warehouseProto.GetWarehousesRequest{
 			ActiveOnly: true,
+			ShopId:     int32(item.ShopID),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get warehouses: %w", err)
@@ -69,11 +67,12 @@ func (u *orderUsecase) Checkout(userID int, items []models.OrderItem) (*models.O
 				WarehouseId: warehouse.Id,
 			})
 			if err != nil {
-				continue // Skip if error checking stock
+				continue
 			}
 
 			availableStock := stock.Stock.Quantity - stock.Stock.Reserved
-			if availableStock >= item.Quantity {
+			stockTotal += availableStock
+			if stockTotal >= item.Quantity {
 				// Reserve the stock
 				_, err := u.warehouseClient.UpdateStock(context.Background(), &warehouseProto.UpdateStockRequest{
 					ProductId:   int32(item.ProductID),
@@ -420,7 +419,6 @@ func (u *orderUsecase) GetUserOrders(userID, page, limit int) ([]*models.Order, 
 
 	return result, total, nil
 }
-
 
 func (u *orderUsecase) CancelOrder(orderID int) error {
 	order, err := u.orderRepo.FindByID(orderID)

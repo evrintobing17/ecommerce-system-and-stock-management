@@ -6,8 +6,10 @@ import (
 	"os"
 
 	"github.com/evrintobing17/ecommerce-system/shared"
+	"github.com/evrintobing17/ecommerce-system/shared/grpc_client"
 	"github.com/evrintobing17/ecommerce-system/shared/jsonhttpresponse"
 	"github.com/evrintobing17/ecommerce-system/shared/middleware"
+	grpcShop "github.com/evrintobing17/ecommerce-system/shared/proto/shop"
 	proto "github.com/evrintobing17/ecommerce-system/shared/proto/warehouse"
 	http "github.com/evrintobing17/ecommerce-system/warehouse-service/app/delivery"
 	grpcServer "github.com/evrintobing17/ecommerce-system/warehouse-service/app/delivery/grpc"
@@ -49,8 +51,18 @@ func main() {
 	warehouseRepo := repository.NewWarehouseRepository(db)
 	stockRepo := repository.NewStockRepository(db)
 
+	shopServiceAddr := os.Getenv("SHOP_SERVICE_GRPC_ADDR")
+	if shopServiceAddr == "" {
+		shopServiceAddr = "shop-service:50054"
+	}
+
+	shopConn, _ := grpc_client.NewConnection(shopServiceAddr)
+	defer shopConn.Close()
+
+	shopClient := grpcShop.NewShopServiceClient(shopConn)
+
 	// Initialize use cases
-	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, stockRepo)
+	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, stockRepo, shopClient)
 
 	// Initialize HTTP server
 	router := gin.Default()
@@ -86,10 +98,10 @@ func main() {
 	go func() {
 		grpcPort := os.Getenv("WAREHOUSE_GRPC_PORT")
 		if grpcPort == "" {
-			grpcPort = "50055"
+			grpcPort = ":50055"
 		}
 
-		lis, err := net.Listen("tcp", ":"+grpcPort)
+		lis, err := net.Listen("tcp", grpcPort)
 		if err != nil {
 			log.Fatal("Failed to listen:", err)
 		}

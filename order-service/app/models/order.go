@@ -28,6 +28,7 @@ type OrderItem struct {
 	ID        int       `gorm:"primaryKey" json:"id"`
 	OrderID   string    `json:"order_id"`
 	ProductID int       `json:"product_id"`
+	ShopID    int       `json:"shop_id"`
 	Quantity  int32     `json:"quantity"`
 	Price     float64   `json:"price"`
 	CreatedAt time.Time `json:"created_at"`

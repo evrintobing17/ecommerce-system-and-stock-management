@@ -68,7 +68,7 @@ func main() {
 
 	// Start gRPC server
 	go func() {
-		lis, err := net.Listen("tcp", ":50051")
+		lis, err := net.Listen("tcp", ":50058")
 		if err != nil {
 			log.Fatal("Failed to listen:", err)
 		}

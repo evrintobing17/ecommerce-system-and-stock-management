@@ -64,9 +64,13 @@ func main() {
 	}
 
 	productConn, _ := grpc_client.NewConnection(productServiceAddr)
+	defer productConn.Close()
+
 	productClient := grpcProduct.NewProductServiceClient(productConn)
 
 	warehouseConn, _ := grpc_client.NewConnection(warehouseServiceAddr)
+	defer warehouseConn.Close()
+
 	warehouseClient := grpcWarehouse.NewWarehouseServiceClient(warehouseConn)
 
 	orderTimeoutMinutes := 15
@@ -127,7 +131,7 @@ func main() {
 			grpcPort = "50053"
 		}
 
-		lis, err := net.Listen("tcp", ":"+grpcPort)
+		lis, err := net.Listen("tcp", grpcPort)
 		if err != nil {
 			log.Fatal("Failed to listen:", err)
 		}

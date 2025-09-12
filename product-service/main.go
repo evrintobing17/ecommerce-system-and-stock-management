@@ -72,7 +72,6 @@ func main() {
 		api.GET("/products/:id", productHandler.GetProduct)
 		api.POST("/products", productHandler.CreateProduct)
 		api.PUT("/products/:id", productHandler.UpdateProduct)
-		api.PATCH("/products/:id/stock", productHandler.UpdateStock)
 		api.DELETE("/products/:id", productHandler.DeleteProduct)
 	}
 
@@ -86,7 +85,7 @@ func main() {
 			grpcPort = "50052"
 		}
 
-		lis, err := net.Listen("tcp", ":"+grpcPort)
+		lis, err := net.Listen("tcp", grpcPort)
 		if err != nil {
 			log.Fatal("Failed to listen:", err)
 		}

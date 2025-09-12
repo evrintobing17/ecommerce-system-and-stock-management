@@ -1,9 +1,11 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	protoShop "github.com/evrintobing17/ecommerce-system/shared/proto/shop"
 	"github.com/evrintobing17/ecommerce-system/warehouse-service/app"
 	"github.com/evrintobing17/ecommerce-system/warehouse-service/app/models"
 )
@@ -11,12 +13,14 @@ import (
 type warehouseUsecase struct {
 	warehouseRepo app.WarehouseRepository
 	stockRepo     app.StockRepository
+	shopProto     protoShop.ShopServiceClient
 }
 
-func NewWarehouseUsecase(warehouseRepo app.WarehouseRepository, stockRepo app.StockRepository) app.WarehouseUsecase {
+func NewWarehouseUsecase(warehouseRepo app.WarehouseRepository, stockRepo app.StockRepository, shopProto protoShop.ShopServiceClient) app.WarehouseUsecase {
 	return &warehouseUsecase{
 		warehouseRepo: warehouseRepo,
 		stockRepo:     stockRepo,
+		shopProto:     shopProto,
 	}
 }
 
@@ -70,6 +74,11 @@ func (u *warehouseUsecase) CreateWarehouse(name, location string, shopID int) (*
 	}
 
 	err := u.warehouseRepo.Create(warehouse)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = u.shopProto.GetShop(context.Background(), &protoShop.GetShopRequest{ShopId: int32(shopID)})
 	if err != nil {
 		return nil, err
 	}

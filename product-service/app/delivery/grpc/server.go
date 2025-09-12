@@ -34,7 +34,6 @@ func (s *productServer) GetProducts(ctx context.Context, req *proto.GetProductsR
 			Name:        product.Name,
 			Description: product.Description,
 			Price:       product.Price,
-			Stock:       product.Stock,
 			ShopId:      int32(product.ShopID),
 			CreatedAt:   product.CreatedAt.Format("2006-01-02 15:04:05"),
 			UpdatedAt:   product.UpdatedAt.Format("2006-01-02 15:04:05"),
@@ -62,44 +61,9 @@ func (s *productServer) GetProduct(ctx context.Context, req *proto.GetProductReq
 			Name:        product.Name,
 			Description: product.Description,
 			Price:       product.Price,
-			Stock:       product.Stock,
 			ShopId:      int32(product.ShopID),
 			CreatedAt:   product.CreatedAt.Format("2006-01-02 15:04:05"),
 			UpdatedAt:   product.UpdatedAt.Format("2006-01-02 15:04:05"),
 		},
-	}, nil
-}
-
-func (s *productServer) UpdateStock(ctx context.Context, req *proto.UpdateStockRequest) (*proto.UpdateStockResponse, error) {
-	var err error
-	var newStock int32
-
-	switch req.Operation {
-	case "add":
-		err = s.productUsecase.AddStock(int(req.ProductId), req.Quantity)
-	case "subtract":
-		err = s.productUsecase.SubtractStock(int(req.ProductId), req.Quantity)
-	case "set":
-		err = s.productUsecase.SetStock(int(req.ProductId), req.Quantity)
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "invalid operation: %s", req.Operation)
-	}
-
-	if err != nil {
-		log.Printf("UpdateStock error: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to update stock: %v", err)
-	}
-
-	product, err := s.productUsecase.GetProduct(int(req.ProductId))
-	if err != nil {
-		log.Printf("GetProduct after update error: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to get updated product: %v", err)
-	}
-
-	newStock = product.Stock
-
-	return &proto.UpdateStockResponse{
-		Success:  true,
-		NewStock: newStock,
 	}, nil
 }
