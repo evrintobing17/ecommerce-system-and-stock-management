@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+option go_package = ".;warehouse";
+
+package warehouse;
+
+service WarehouseService {
+    rpc GetWarehouse(GetWarehouseRequest) returns (GetWarehouseResponse);
+    rpc GetWarehouses(GetWarehousesRequest) returns (GetWarehousesResponse);
+    rpc CreateWarehouse(CreateWarehouseRequest) returns (CreateWarehouseResponse);
+    rpc UpdateWarehouse(UpdateWarehouseRequest) returns (UpdateWarehouseResponse);
+    rpc TransferStock(TransferStockRequest) returns (TransferStockResponse);
+    rpc GetStock(GetStockRequest) returns (GetStockResponse);
+    rpc UpdateStock(UpdateStockRequest) returns (UpdateStockResponse);
+}
+
+message Warehouse {
+    int32 id = 1;
+    string name = 2;
+    string location = 3;
+    int32 shop_id = 4;
+    bool active = 5;
+    string created_at = 6;
+    string updated_at = 7;
+}
+
+message Stock {
+    int32 product_id = 1;
+    int32 warehouse_id = 2;
+    int32 quantity = 3;
+    int32 reserved = 4;
+    string created_at = 5;
+    string updated_at = 6;
+}
+
+message GetWarehouseRequest {
+    int32 warehouse_id = 1;
+}
+
+message GetWarehouseResponse {
+    Warehouse warehouse = 1;
+}
+
+message GetWarehousesRequest {
+    int32 shop_id = 1;
+    bool active_only = 2;
+}
+
+message GetWarehousesResponse {
+    repeated Warehouse warehouses = 1;
+}
+
+message CreateWarehouseRequest {
+    string name = 1;
+    string location = 2;
+    int32 shop_id = 3;
+}
+
+message CreateWarehouseResponse {
+    Warehouse warehouse = 1;
+}
+
+message UpdateWarehouseRequest {
+    int32 warehouse_id = 1;
+    string name = 2;
+    string location = 3;
+    bool active = 4;
+}
+
+message UpdateWarehouseResponse {
+    Warehouse warehouse = 1;
+}
+
+message TransferStockRequest {
+    int32 product_id = 1;
+    int32 from_warehouse_id = 2;
+    int32 to_warehouse_id = 3;
+    int32 quantity = 4;
+}
+
+message TransferStockResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetStockRequest {
+    int32 product_id = 1;
+    int32 warehouse_id = 2;
+}
+
+message GetStockResponse {
+    Stock stock = 1;
+}
+
+message UpdateStockRequest {
+    int32 product_id = 1;
+    int32 warehouse_id = 2;
+    int32 quantity = 3;
+    int32 reserved = 4;
+    string operation = 5; // "add", "subtract", "set"
+}
+
+message UpdateStockResponse {
+    bool success = 1;
+    Stock stock = 2;
+}

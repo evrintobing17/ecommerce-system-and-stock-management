@@ -3,12 +3,13 @@ package models
 import "time"
 
 type User struct {
-	ID           int       `json:"id"`
-	Email        string    `json:"email"`
-	Phone        string    `json:"phone"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID        int    `gorm:"primaryKey" json:"id"`
+	Email     string    `gorm:"uniqueIndex" json:"email"`
+	Phone     string    `gorm:"uniqueIndex" json:"phone"`
+	Name      string    `json:"name"`
+	Password  string    `json:"-"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type UserResponse struct {

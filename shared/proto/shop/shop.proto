@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option go_package = ".;shop";
+
+package shop;
+
+service ShopService {
+    rpc CreateShop(CreateShopRequest) returns (CreateShopResponse);
+    rpc GetShop(GetShopRequest) returns (GetShopResponse);
+    rpc GetShops(GetShopsRequest) returns (GetShopsResponse);
+}
+
+message Shop {
+    int32 id = 1;
+    string name = 2;
+    string description = 3;
+    int32 owner_id = 4;
+    string created_at = 5;
+    string updated_at = 6;
+}
+
+message CreateShopRequest {
+    string name = 1;
+    string description = 2;
+    int32 owner_id = 3;
+}
+
+message CreateShopResponse {
+    Shop shop = 1;
+}
+
+message GetShopRequest {
+    int32 shop_id = 1;
+}
+
+message GetShopResponse {
+    Shop shop = 1;
+}
+
+message GetShopsRequest {
+    int32 owner_id = 1;
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message GetShopsResponse {
+    repeated Shop shops = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 limit = 4;
+}

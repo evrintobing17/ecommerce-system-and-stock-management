@@ -1,52 +1,113 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
+	delivery "github.com/evrintobing17/ecommerce-system/product-service/app/delivery"
+	grpcServer "github.com/evrintobing17/ecommerce-system/product-service/app/delivery/grpc"
+	"github.com/evrintobing17/ecommerce-system/product-service/app/models"
+	"github.com/evrintobing17/ecommerce-system/product-service/app/repository"
+	"github.com/evrintobing17/ecommerce-system/product-service/app/usecase"
+
+	"github.com/evrintobing17/ecommerce-system/shared"
+	"github.com/evrintobing17/ecommerce-system/shared/middleware"
+	proto "github.com/evrintobing17/ecommerce-system/shared/proto/product"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
-
-	"shared"
-	"shared/jsonhttpresponse"
-	productDelivery "product-service/app/delivery"
-	productRepo "product-service/app/repository"
-	productUsecase "product-service/app/usecase"
-)
-
-var (
-	db        *sql.DB
-	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	logger := shared.NewLogger("PRODUCT-SERVICE")
-	var err error
-	db, err = shared.InitDB()
-	if err != nil {
-		logger.ErrorLog(err)
-		log.Fatal(err)
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
 	}
 
-	defer db.Close()
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(shared.GinMetricsMiddleware())
-	shared.RegisterMetricsHandler(r)
+	// Initialize logger
+	shared.InitLogger()
 
-	r.GET("/health", func(c *gin.Context) {
-		jsonhttpresponse.OK(c, gin.H{
+	// Initialize database
+	db, err := shared.ConnectDB()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer func() {
+		if err := shared.CloseDB(db); err != nil {
+			log.Println("Error closing database:", err)
+		}
+	}()
+
+	// Auto migrate models
+	err = shared.MigrateDB(db, &models.Product{})
+	if err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
+
+	// Initialize repositories
+	productRepo := repository.NewProductRepository(db)
+
+	// Initialize use cases
+	productUsecase := usecase.NewProductUsecase(productRepo)
+
+	// Initialize HTTP server
+	router := gin.Default()
+	productHandler := delivery.NewProductHandler(productUsecase)
+	router.Use(gin.Recovery())
+	router.Use(shared.GinMetricsMiddleware())
+	shared.RegisterMetricsHandler(router)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
 			"status": "OK",
 		})
 	})
+	// HTTP routes
+	api := router.Group("/api/v1")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	api.Use(middleware.AuthMiddleware(jwtSecret))
+	{
+		api.GET("/products", productHandler.GetProducts)
+		api.GET("/products/:id", productHandler.GetProduct)
+		api.POST("/products", productHandler.CreateProduct)
+		api.PUT("/products/:id", productHandler.UpdateProduct)
+		api.PATCH("/products/:id/stock", productHandler.UpdateStock)
+		api.DELETE("/products/:id", productHandler.DeleteProduct)
+	}
 
-	productRepository := productRepo.NewproductRepository(db)
-	productUseCase := productUsecase.NewproductUsecase(productRepository, string(jwtSecret), logger)
-	productDelivery.NewAuthHandler(r, logger, productUseCase)
+	// Initialize gRPC server
+	productServer := grpcServer.NewProductServer(productUsecase)
 
-	fmt.Println("product service is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	// Start gRPC server
+	go func() {
+		grpcPort := os.Getenv("PRODUCT_GRPC_PORT")
+		if grpcPort == "" {
+			grpcPort = "50052"
+		}
+
+		lis, err := net.Listen("tcp", ":"+grpcPort)
+		if err != nil {
+			log.Fatal("Failed to listen:", err)
+		}
+
+		grpcServer := grpc.NewServer()
+		proto.RegisterProductServiceServer(grpcServer, productServer)
+
+		log.Printf("Product gRPC server started on port %s", grpcPort)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal("Failed to serve gRPC:", err)
+		}
+	}()
+
+	// Start HTTP server
+	httpPort := os.Getenv("PRODUCT_SERVICE_PORT")
+	if httpPort == "" {
+		httpPort = "8081"
+	}
+
+	log.Printf("Product HTTP server started on port %s", httpPort)
+	if err := router.Run(":" + httpPort); err != nil {
+		log.Fatal("Failed to start HTTP server:", err)
+	}
 }

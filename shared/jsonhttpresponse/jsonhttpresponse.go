@@ -125,5 +125,13 @@ func Forbidden(c *gin.Context, payloads interface{}) {
 }
 
 func StatusCreated(c *gin.Context, payload interface{}) {
-	c.JSON(http.StatusCreated, payload)
+	status := http.StatusCreated
+	Resp := Response{
+		Code:    status,
+		Message: http.StatusText(status),
+		Data:    payload,
+		Errors:  nil,
+	}
+	c.IndentedJSON(status, Resp)
+	return
 }

@@ -1,0 +1,46 @@
+# Order Service Dockerfile
+ARG SERVICE_NAME=order-service
+ARG SERVICE_PORT=8082
+ARG GRPC_PORT=50053
+
+# Use the base image
+FROM golang:1.24-alpine AS builder
+
+# Install necessary tools
+RUN apk add --no-cache git gcc musl-dev
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the order service
+RUN go build -o main ./order-service
+
+# Final stage
+FROM alpine:3.16
+
+# Install CA certificates for SSL
+RUN apk --no-cache add ca-certificates
+
+# Set working directory
+WORKDIR /root/
+
+# Copy the binary from builder
+COPY --from=builder /app/main .
+
+# Copy environment file (if exists)
+COPY .env ./
+
+# Expose the port the app runs on
+EXPOSE 8082 50053
+
+# Command to run the executable
+CMD ["./main"]

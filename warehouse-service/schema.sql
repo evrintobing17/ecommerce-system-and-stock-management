@@ -1,5 +1,5 @@
 CREATE TABLE warehouses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
@@ -8,9 +8,9 @@ CREATE TABLE warehouses (
 );
 
 CREATE TABLE stock (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID NOT NULL,
-    warehouse_id UUID REFERENCES warehouses(id),
+    id SERIAL PRIMARY KEY,
+    product_id SERIAL NOT NULL,
+    warehouse_id SERIAL REFERENCES warehouses(id),
     quantity INTEGER NOT NULL DEFAULT 0,
     reserved INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW(),
